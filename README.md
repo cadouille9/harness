@@ -8,7 +8,81 @@ git clone https://github.com/cadouille9/harness ~/dev/harness
 ~/dev/harness/install.sh
 ```
 
-Then restart Claude Code, and run `/setup-matt-pocock-skills` once per repo.
+## Getting started
+
+### 1. Restart, then check it took
+
+Plugins and the SessionStart hook only load at session start, so restart Claude
+Code before anything else.
+
+```bash
+ls ~/.claude/skills | wc -l   # 33
+ls ~/.agents/skills | wc -l   # 33  (the Codex mirror)
+```
+
+In a session, type `/` — `/to-spec`, `/to-tickets`, `/grill-with-docs` and the
+rest should be listed.
+
+### 2. Set up each repo you work in
+
+```
+/setup-matt-pocock-skills
+```
+
+**Once per repo.** Nothing in the chain works without it, because it writes
+`docs/agents/issue-tracker.md` — the file that tells `to-spec`, `to-tickets` and
+`triage` where tickets go. It explores the repo first, then asks **two** things:
+
+**Issue tracker.** It proposes GitHub if your `git remote` points there (drives
+the `gh` CLI — check `gh auth status` first). Also on offer: GitLab via `glab`,
+local markdown under `.scratch/` for repos with no remote, or **Other** — a
+freeform paragraph describing any workflow you like. That last option is the
+seam: pointing the chain at a different tracker later means rewriting this one
+file, nothing else.
+
+**Triage labels.** Say yes to the defaults — `needs-triage`, `needs-info`,
+`ready-for-agent`, `ready-for-human`, `wontfix` — unless your tracker already
+uses other names, in which case give the existing ones so `triage` applies them
+instead of creating duplicates.
+
+It does *not* ask about domain docs. It defaults to a single `CONTEXT.md` plus
+`docs/adr/` at the repo root and just writes them.
+
+### 3. Your first feature, end to end
+
+```
+/grill-with-docs        rounds of questions, each with a recommended answer;
+                        ADRs and a glossary get written as decisions land
+
+/to-spec                synthesises the conversation into a spec, agrees the
+                        seams the tests will sit at, publishes it to the tracker
+
+/codex-plan-review 42   optional — a second model attacks the spec before any
+                        code exists. Read-only: it can read the repo to check
+                        the spec's claims, but cannot edit
+
+/to-tickets 42          vertical slices with blocking edges, published in
+                        dependency order, each tagged ready-for-agent
+
+/implement              works the tickets, driving tdd at the agreed seams
+```
+
+From there you mostly stop typing. Ask for a review and `code-review` fires
+(standards and spec, in parallel). When the work is done and tests are green,
+`finishing-a-development-branch` fires to decide how it integrates.
+
+Don't feel obliged to start at the top — see
+[Where to jump in](#where-to-jump-in).
+
+### If a skill isn't firing
+
+- **Restart first.** The SessionStart hook and all plugins load only at startup.
+- **Check the hook:** `~/.claude/scripts/skills-session-start.sh | head -c 80`
+  should print JSON. If it prints nothing, nothing will auto-fire reliably.
+- **11 skills never auto-fire by design** — they publish or take over the
+  session. See [Typed vs automatic](#typed-vs-automatic).
+- **In Codex**, `dispatching-parallel-agents` and `subagent-driven-development`
+  are inert unless `~/.codex/config.toml` has `[features] multi_agent = true`.
 
 ## What it sets up
 
