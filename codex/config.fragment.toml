@@ -1,0 +1,16 @@
+# Merged into ~/.codex/config.toml by install.sh. Only these keys are touched;
+# your model, effort, and per-project trust settings are left alone.
+
+# dispatching-parallel-agents and subagent-driven-development have no spawn
+# tools without this.
+[features]
+multi_agent = true
+
+# Recommended by superpowers' using-superpowers/references/codex-tools.md but
+# NOT applied by install.sh, because the right value depends on your spawn
+# allowlist. Without it, a spawn that sets `model` but omits `reasoning_effort`
+# silently inherits the session's most expensive tier.
+#
+# [agents]
+# default_subagent_model = "<a mid-tier model from your spawn allowlist>"
+# default_subagent_reasoning_effort = "medium"
