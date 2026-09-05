@@ -26,6 +26,108 @@ with the overlaps between them resolved:
 
 Plus 15 plugins, a SessionStart hook, and a Codex mirror at `~/.agents/skills/`.
 
+## Using the skills
+
+### The main loop
+
+```
+  idea ──▶ /grill-with-docs ──▶ /to-spec ──▶ /to-tickets ──▶ /implement ──▶ review ──▶ finish
+           interview you        spec +       vertical         tdd at the    two axes   integrate
+           into a design        seams +      slices with      agreed seams  in
+           tree; writes         Testing      blocking                       parallel
+           ADRs + glossary      Decisions    edges
+                                    │            │
+                                    └── /codex-plan-review ──┘
+                                        second model attacks it
+                                        before any code exists
+```
+
+Each step feeds the next. `grill-with-docs` writes the glossary and ADRs that
+`to-spec` and `to-tickets` read; `to-spec` agrees the **seams** that `tdd` later
+tests at; `to-tickets` puts acceptance criteria on each ticket that `code-review`
+checks the implementation against. Skipping a step doesn't break the next one, it
+just makes it guess.
+
+Run `/setup-matt-pocock-skills` **once per repo** before any of this — it writes
+`docs/agents/issue-tracker.md`, which tells the chain where tickets go.
+
+### Where to jump in
+
+| Situation | Start with |
+|---|---|
+| Vague idea, and it's bigger than one session | `/wayfinder` — charts decision tickets, resolves them one at a time |
+| Vague idea, normal size | `/grill-with-docs` |
+| Already talked it through; just capture it | `/to-spec` — no interview, pure synthesis |
+| Spec or tickets already exist | `/implement` |
+| Something is broken, slow, or throwing | just say so — `diagnosing-bugs` fires |
+| Not sure where an interface or seam belongs | say so — `codebase-design` fires |
+| Not sure the model or logic feels right | say so — `prototype` fires (throwaway code that answers one question) |
+| Need facts from docs or primary sources | say so — `research` fires and runs in the background |
+| Inbox of issues and external PRs | `/triage` |
+| Manual steps only a human can do (dashboards, secrets) | say so — `wizard` writes you a bash walkthrough |
+| Bulk mechanical work with a pass/fail check | `/delegate` |
+| Running low on context | `/handoff` |
+| Session went badly and you want the setup fixed | `/retro` |
+
+### Typed vs automatic
+
+**11 you type.** Nothing below fires on its own — they publish, restructure, or
+take over the session, so they wait for you:
+
+```
+/setup-matt-pocock-skills  /grill-with-docs  /grill-me   /to-spec   /to-tickets
+/triage  /wayfinder  /implement  /handoff  /retro  /codex-plan-review
+```
+
+**The rest fire on their own**, triggered by what you say. `tdd`,
+`diagnosing-bugs`, `code-review`, `codebase-design`, `domain-modeling`,
+`grilling`, `prototype`, `research`, `wizard`, plus the superpowers set below.
+The SessionStart hook is what makes this reliable.
+
+### Superpowers: the execution half
+
+These all fire on their own, and cover the part of the loop mattpocock doesn't:
+
+| Skill | Fires when |
+|---|---|
+| `writing-plans` | you have a spec and a multi-step task, before code |
+| `subagent-driven-development` | executing a plan's independent tasks **in this session** |
+| `executing-plans` | executing a plan **in a separate session**, with review checkpoints |
+| `dispatching-parallel-agents` | 2+ tasks with no shared state and no ordering between them |
+| `using-git-worktrees` | feature work that needs isolation from your current tree |
+| `verification-before-completion` | you're about to claim something works — forces evidence first |
+| `finishing-a-development-branch` | implementation done, tests green, needs integrating |
+| `writing-skills` | authoring or editing a skill (pairs with the `skill-creator` plugin) |
+
+`subagent-driven-development` and `executing-plans` are the same job at different
+scopes — one session vs. across sessions. Both consume a plan from
+`writing-plans`.
+
+### Two overlaps to be deliberate about
+
+**`/implement` vs `subagent-driven-development`.** `/implement` works from a spec
+or tickets and drives `tdd` at the agreed seams — the mattpocock path.
+`subagent-driven-development` works from a written plan and fans out to
+subagents, then dispatches a final reviewer. Use `/implement` when the tickets
+are the unit of work; use SDD when a plan is, and you want it run autonomously.
+
+**`writing-skills` vs `skill-creator`.** Kept together on purpose: `writing-skills`
+is the method (TDD applied to documentation — write pressure tests, watch them
+fail, then write the skill), `skill-creator` is the tooling that runs the evals
+and scaffolds the files. Method then harness, not either/or.
+
+### Notes
+
+- `/grill-me` is a one-line alias for `grilling`. `/grill-with-docs` is the same
+  interview but emits ADRs and a glossary as it goes — prefer it, because the rest
+  of the chain reads those.
+- `/to-spec` deliberately does **not** interview you. Grill first, then capture.
+- `/codex-plan-review` is read-only: no `--write` is passed, so Codex can read the
+  repo to check the plan's claims against real code but cannot edit anything. Use
+  `/codex:adversarial-review` instead once a diff exists — it's diff-scoped and
+  needs file:line anchors a plan doesn't have.
+- Don't reach for `/implement` on a one-or-two-file edit. Just make the edit.
+
 ## Why skills are copied, not installed as plugins
 
 `enabledPlugins` in `settings.json` toggles at **plugin granularity only** —
