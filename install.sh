@@ -204,6 +204,15 @@ if [ "$SKIP_PI" -eq 0 ]; then
   done
   ok "linked $n extra skill(s) into ~/.pi/agent/skills: $HARNESS_PI_EXTRA"
 
+  # Auto-discovered from here; the .test.ts sits beside it in the repo but is
+  # not installed, since pi would try to load it as an extension.
+  mkdir -p "$PI_DIR/extensions"
+  for e in "$REPO"/pi/extensions/*.ts; do
+    case "$e" in *.test.ts) continue ;; esac
+    install -m 0644 "$e" "$PI_DIR/extensions/"
+  done
+  ok "installed $(ls "$REPO"/pi/extensions/*.ts | grep -vc '\.test\.ts$') extension(s) into ~/.pi/agent/extensions"
+
   # Packages before settings: `pi install` writes its own entry into
   # settings.json, and the merge below is what reconciles the array.
   for pkg in $HARNESS_PI_PACKAGES; do

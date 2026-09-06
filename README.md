@@ -292,6 +292,39 @@ library — no second symlink farm. Everything Pi-specific is small:
   `using-superpowers/references/pi-tools.md` expects. Without it
   `dispatching-parallel-agents`, `subagent-driven-development`, `code-review`
   and `research` have nothing to spawn.
+- **`npm:pi-lens@4.1.3`** is the LSP, lint and typecheck feedback that
+  `typescript-lsp` and `pyright-lsp` give Claude Code. Pinned on purpose: it
+  auto-installs external dev tools (biome, prettier, gitleaks, `go install`...)
+  gated on what a repo contains, so a version bump should be a decision.
+
+### The write boundary
+
+Pi ships no permission layer by design, so `pi/extensions/harness-boundary.ts`
+adds the one rule that matters locally: **ask before writing outside the repo.**
+
+The boundary is the git repo root of the session cwd (the cwd itself when it is
+not a repo). Inside it nothing is prompted. Outside it, `write` and `edit` ask
+first, as do `bash` commands that both look mutating (`rm`, `mv`, `tee`, `sed
+-i`, a redirect...) and name a path outside the boundary. `sudo` always asks.
+`/dev/null`, `/tmp` and `$TMPDIR` are exempt — edit `ALWAYS_ALLOWED` to change
+that. Declining returns a blocked tool call with a reason the model reads.
+
+In `-p` and JSON mode there is no dialog, so it **fails closed**: outside-repo
+writes are blocked outright rather than hanging or being waved through. If the
+check itself throws, that call is blocked too, and says so.
+
+**It is a guardrail, not a sandbox.** `bash` is unbounded — `sh -c`, `python -c`
+or a heredoc reaches any path whatever the command string looks like. It stops a
+model that wanders, not one that is trying. For a real boundary use a container,
+or run pi from a worktree instead of `$HOME` (`using-git-worktrees`).
+
+```bash
+node --experimental-strip-types pi/extensions/harness-boundary.test.ts
+```
+
+22 assertions over the path logic — containment, symlink resolution,
+prefix-siblings (`/repo-evil` is not inside `/repo`), tilde expansion, and which
+commands count as mutating. No pi and no model needed.
 
 ### The AGENTS.md block
 
@@ -323,6 +356,8 @@ codex/config.fragment.toml   what install.sh merges into ~/.codex/config.toml
 pi/
   settings.fragment.json     what install.sh merges into ~/.pi/agent/settings.json
   AGENTS.fragment.md         header wrapped around using-superpowers in AGENTS.md
+  extensions/                installed to ~/.pi/agent/extensions (.test.ts is not)
+    harness-boundary.ts      ask before writing outside the repo
   scripts/sync-pi-agents.sh  regenerates the ~/.pi/agent/AGENTS.md block
 skills/codex-plan-review/    the one skill authored here
 ```
