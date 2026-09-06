@@ -178,6 +178,19 @@ if [ "$SKIP_PI" -eq 0 ]; then
   say "Pi"
   mkdir -p "$PI_DIR/skills"
 
+  # Omarchy and friends install the same skill into both trees; Pi reads both
+  # and warns on every duplicate name. The shared mirror wins. Only symlinks are
+  # pruned — a real directory here is yours and is never touched.
+  d=0
+  for p in "$PI_DIR/skills"/*; do
+    [ -L "$p" ] || continue
+    s="$(basename "$p")"
+    if [ -e "$AGENTS_SKILLS/$s" ] && [ "$(readlink -f "$p")" = "$(readlink -f "$AGENTS_SKILLS/$s")" ]; then
+      rm "$p"; d=$((d+1))
+    fi
+  done
+  if [ "$d" -gt 0 ]; then ok "pruned $d duplicate symlink(s) already in ~/.agents/skills"; fi
+
   # Pi reads ~/.agents/skills natively, so the Codex mirror is already Pi's
   # library. Only the extras land here, and only when the mirror does not carry
   # them: Pi reads both trees and a duplicate name warns and keeps the first.
