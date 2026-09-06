@@ -318,6 +318,22 @@ or a heredoc reaches any path whatever the command string looks like. It stops a
 model that wanders, not one that is trying. For a real boundary use a container,
 or run pi from a worktree instead of `$HOME` (`using-git-worktrees`).
 
+**Known gap: subagent children are not covered.** `pi-subagents` runs children as
+separate processes that do not load this extension, so a child's `write` or
+`edit` outside the repo is not gated. It ships its own opt-in layer instead —
+per-tool `allow`/`ask`/`deny` in `~/.pi/agent/extensions/subagent/config.json`,
+overridable in an agent's frontmatter — and with no rules configured **every
+child tool call passes through**, which is the state this harness leaves it in.
+
+Read its `ask` carefully before reaching for it: it does not ask you. It sends a
+redacted preview to a one-call LLM arbiter that answers approve or deny and does
+not notify the parent session. `deny` is the only value that puts a hard stop in
+front of a child.
+
+Left open deliberately — `subagent-driven-development` exists to have children
+write code, so gating them costs more than it buys today. Close it by setting
+`edit`/`write` in that config when you start running unattended fleets.
+
 ```bash
 node --experimental-strip-types pi/extensions/harness-boundary.test.ts
 ```

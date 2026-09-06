@@ -14,6 +14,11 @@
  * model that wanders. It does not stop one that is trying. For a real boundary,
  * use a container, or run pi from a worktree rather than from $HOME.
  *
+ * It also covers this session only. pi-subagents runs children as separate
+ * processes that never load this file, and its own child permission layer
+ * (~/.pi/agent/extensions/subagent/config.json) is unconfigured here, so child
+ * tool calls pass through ungated. See "Known gap" in the README.
+ *
  * Failure is closed: if the check itself throws, the call is blocked and says
  * so, rather than being waved through.
  */
