@@ -29,6 +29,33 @@ HARNESS_OWN_SKILLS="codex-plan-review"
 HARNESS_CODEX_EXCLUDE="codex-plan-review requirement-engineering"
 HARNESS_CODEX_EXTRA="delegate"
 
+# --- Pi --------------------------------------------------------------------
+# Pi reads ~/.agents/skills natively, so the Codex mirror above is already Pi's
+# skill library. Only these extras are linked into ~/.pi/agent/skills, which has
+# to stay disjoint from the mirror: Pi reads both trees, and a duplicate skill
+# name warns and keeps only the first one found.
+HARNESS_PI_EXTRA="codex-plan-review"
+
+# Subtracted from the shared mirror in Pi's own settings, by skill-dir name
+# (a `!name` entry in the `skills` array disables an auto-discovered skill).
+#   requirement-engineering — instructs AskUserQuestion, which Pi has no equivalent for.
+#   delegate                — hands work to `pi` + a small local model; a no-op from Pi.
+HARNESS_PI_DISABLE="requirement-engineering delegate"
+
+# pi-subagents registers the `subagent` tool that superpowers'
+# using-superpowers/references/pi-tools.md expects; without it
+# dispatching-parallel-agents, subagent-driven-development, code-review and
+# research have nothing to spawn. Loaded whole: its own two skills teach the
+# tool, and neither name collides with ours.
+#
+# pi-lens is the LSP/lint/typecheck feedback that typescript-lsp and pyright-lsp
+# give Claude Code, and Pi has no equivalent. Pinned deliberately: a
+# single-maintainer package that auto-installs external dev tools (biome,
+# prettier, gitleaks, gopls...) gated on what a repo contains, so a version bump
+# should be a decision, not a background update. Re-pin with
+# `pi install npm:pi-lens@<new>` after reading its changelog.
+HARNESS_PI_PACKAGES="npm:pi-subagents npm:pi-lens@4.1.3"
+
 # --- plugins ---------------------------------------------------------------
 HARNESS_MARKETPLACES="openai-codex=openai/codex-plugin-cc visual-explainer-marketplace=nicobailon/visual-explainer karpathy-skills=forrestchang/andrej-karpathy-skills"
 

@@ -101,3 +101,8 @@ for s in $KEEP; do
 done
 echo "applied. remaining 'superpowers:' refs:"
 ( cd "$DEST" && grep -rn 'superpowers:' $KEEP || echo "  none" )
+
+# Pi has no SessionStart hook: its copy of using-superpowers lives in
+# ~/.pi/agent/AGENTS.md and has to be regenerated whenever this one changes.
+SYNC="$(dirname "$0")/sync-pi-agents.sh"
+if [ -x "$SYNC" ] && [ -d "$HOME/.pi/agent" ]; then "$SYNC"; fi

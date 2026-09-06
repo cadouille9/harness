@@ -1,6 +1,6 @@
 # harness
 
-My Claude Code + Codex setup, as an installer. `./install.sh` on a new machine
+My Claude Code, Codex and Pi setup, as an installer. `./install.sh` on a new machine
 reproduces it; re-running is safe.
 
 ```bash
@@ -17,7 +17,7 @@ Code before anything else.
 
 ```bash
 ls ~/.claude/skills | wc -l   # 33
-ls ~/.agents/skills | wc -l   # 33  (the Codex mirror)
+ls ~/.agents/skills | wc -l   # 33  (the mirror Codex and Pi share)
 ```
 
 In a session, type `/` — `/to-spec`, `/to-tickets`, `/grill-with-docs` and the
@@ -83,6 +83,9 @@ Don't feel obliged to start at the top — see
   session. See [Typed vs automatic](#typed-vs-automatic).
 - **In Codex**, `dispatching-parallel-agents` and `subagent-driven-development`
   are inert unless `~/.codex/config.toml` has `[features] multi_agent = true`.
+- **In Pi**, check the block is there: `head -3 ~/.pi/agent/AGENTS.md`. Anything
+  that spawns needs `pi list` to show `npm:pi-subagents`. Skills auto-fire less
+  reliably on small local models — type `/skill:<name>` to force one.
 
 ## What it sets up
 
@@ -98,7 +101,8 @@ with the overlaps between them resolved:
 - **`codex-plan-review`** — written here. Sends a plan to Codex for an
   adversarial review *before* any code exists.
 
-Plus 15 plugins, a SessionStart hook, and a Codex mirror at `~/.agents/skills/`.
+Plus 15 plugins, a SessionStart hook, and a mirror at `~/.agents/skills/` that
+Codex and Pi both read.
 
 ## Using the skills
 
@@ -270,6 +274,40 @@ no spawn tools. See `codex/config.fragment.toml` for a recommended
 `[agents] default_subagent_model` backstop that is deliberately **not** applied,
 because the right value depends on your spawn allowlist.
 
+## Pi
+
+Pi reads `~/.agents/skills/` natively, so the Codex mirror is already Pi's skill
+library — no second symlink farm. Everything Pi-specific is small:
+
+- **`~/.pi/agent/skills/`** takes the extras the mirror excludes but Pi can run.
+  Today that is just `codex-plan-review`: Pi driving `codex` is not circular the
+  way Codex driving Codex is. This tree must stay **disjoint** from the mirror —
+  Pi reads both, and a duplicate skill name warns and keeps only the first found.
+- **`~/.pi/agent/settings.json`** gets `enableSkillCommands` plus the
+  subtractions. A `!<name>` entry in the `skills` array disables an
+  auto-discovered skill, which is how `requirement-engineering` (instructs
+  `AskUserQuestion`) and `delegate` (hands work to `pi`, a no-op from Pi) come
+  off. Provider, model, thinking level and theme are machine-local and untouched.
+- **`npm:pi-subagents`** registers the `subagent` tool that superpowers'
+  `using-superpowers/references/pi-tools.md` expects. Without it
+  `dispatching-parallel-agents`, `subagent-driven-development`, `code-review`
+  and `research` have nothing to spawn.
+
+### The AGENTS.md block
+
+Pi has no hooks. Its global context file is the equivalent: loaded into every
+session, before project trust is resolved, and preserved across compaction.
+`sync-pi-agents.sh` writes the same `using-superpowers` payload the Claude hook
+injects, between `<!-- harness:begin -->` / `<!-- harness:end -->` markers.
+Anything outside the markers is yours and survives a re-run.
+
+The block carries one Pi-specific rewrite, the counterpart of the two superpowers
+ones. Eight skills say "call the Skill tool with X"; Pi has no such tool, so the
+header maps that phrasing onto "read `~/.agents/skills/X/SKILL.md`" once,
+globally, rather than rewriting eight files that Codex also reads.
+
+`install.sh` and `refresh-superpowers-skills.sh --apply` both regenerate it.
+
 ## Layout
 
 ```
@@ -282,6 +320,10 @@ claude/
     refresh-*-skills.sh      pull upstream, reapply the rewrites
     context-bar.sh           statusline
 codex/config.fragment.toml   what install.sh merges into ~/.codex/config.toml
+pi/
+  settings.fragment.json     what install.sh merges into ~/.pi/agent/settings.json
+  AGENTS.fragment.md         header wrapped around using-superpowers in AGENTS.md
+  scripts/sync-pi-agents.sh  regenerates the ~/.pi/agent/AGENTS.md block
 skills/codex-plan-review/    the one skill authored here
 ```
 
@@ -295,10 +337,13 @@ third copy to drift.
 ~/.claude/scripts/refresh-mattpocock-skills.sh          # report
 ~/.claude/scripts/refresh-mattpocock-skills.sh --apply  # take upstream where you have no edits
 ~/.claude/scripts/refresh-superpowers-skills.sh --apply # re-pull + reapply rewrites
+~/.claude/scripts/sync-pi-agents.sh                     # rebuild the Pi AGENTS.md block
 ```
 
-Both read `~/.claude/scripts/harness-manifest.sh`, installed from `manifest.sh`.
-Edit the manifest, re-run `install.sh`, and both harnesses follow.
+All read `~/.claude/scripts/harness-manifest.sh`, installed from `manifest.sh`.
+Edit the manifest, re-run `install.sh`, and all three harnesses follow. The
+superpowers refresh calls `sync-pi-agents.sh` itself, so Pi never lags behind a
+`using-superpowers` change.
 
 ## Not in here
 
